@@ -1,0 +1,20 @@
+---
+
+- name: Create sigstore network
+  containers.podman.podman_network:
+    name: "{{ sigstore_podman_network }}"
+
+- name: Configure/Deploy Trillian
+  ansible.builtin.include_tasks: podman/trillian.yml
+
+- name: Setup Trillian Tree ID
+  ansible.builtin.include_tasks: podman/createtree.yml
+
+- name: Configure/Deploy Rekor
+  ansible.builtin.include_tasks: podman/rekor.yml
+
+- name: Configure/Deploy Fulcio
+  ansible.builtin.include_tasks: podman/fulcio.yml
+
+- name: Configure/Deploy ctlog
+  ansible.builtin.include_tasks: podman/ctlog.yml

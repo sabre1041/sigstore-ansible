@@ -1,0 +1,36 @@
+---
+
+- name: Obtain Trillian Tree ID
+  ansible.builtin.include_tasks: podman/createtree.yml
+
+- name: Create Rekor Sharding ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ rekor_sharding_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: rekor-sharding-config
+        namespace: rekor-system
+      data:
+        sharding-config.yaml: ""
+
+- name: Deploy Rekor Redis Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/rekor/redis-server.yaml') | from_yaml }}"
+
+- name: Deploy Rekor Server Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/rekor/rekor-server.yaml') | from_yaml }}"
+      configmap:
+        - "{{ rekor_sharding_config }}"

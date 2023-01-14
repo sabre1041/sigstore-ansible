@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: trillian-logsigner
+  labels:
+    app.kubernetes.io/component: trillian-logsigner
+    app.kubernetes.io/instance: scaffold
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: trillian
+    helm.sh/chart: trillian-0.1.16
+  name: trillian-logsigner
+  namespace: trillian-system
+spec:
+  containers:
+    - args:
+        - --storage_system=mysql
+        - --quota_system=mysql
+        - --mysql_uri={{ trillian.mysql.user }}:{{ trillian.mysql.password }}@tcp({{ trillian.mysql.host }}:{{ trillian.mysql.port }})/{{ trillian.mysql.database }}
+        - --rpc_endpoint=0.0.0.0:8091
+        - --http_endpoint=0.0.0.0:8090
+        - --force_master=true
+        - --alsologtostderr
+      env:
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              key: mysql-user
+              name: trillian-mysql
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mysql-password
+              name: trillian-mysql
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              key: mysql-database
+              name: trillian-mysql
+        - name: MYSQL_HOSTNAME
+          value: {{ trillian.mysql.host }}
+        - name: MYSQL_PORT
+          value: "{{ trillian.mysql.port | quote }})"
+      image: gcr.io/projectsigstore/trillian_log_signer@sha256:b56ed0b7b5e9813c91b208ba6041c9342f9a53162d96943374e59b5289090f1f
+      imagePullPolicy: IfNotPresent
+      name: trillian-trillian-logsigner
+      ports:
+        - containerPort: 8091
+          protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  initContainers:
+    - command:
+        - sh
+        - -c
+        - until nc -z -w 10 trillian-mysql 3306; do echo waiting for trillian-mysql; sleep 5; done;
+      image: docker.io/toolbelt/netcat@sha256:7d921b6d368fb1736cb0832c6f57e426c161593c075847af3378eb3185801cea
+      imagePullPolicy: IfNotPresent
+      name: wait-for-trillian-db
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+  nodeName: minikube
+  nodeSelector:
+    kubernetes.io/arch: arm64
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  # Needs to be set until https://github.com/containers/podman/pull/16698 is downsteamed
+  restartPolicy: OnFailure
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: trillian-logsigner
+  serviceAccountName: trillian-logsigner
+  terminationGracePeriodSeconds: 30
+  tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300

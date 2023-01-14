@@ -1,0 +1,49 @@
+---
+
+- name: Set Certificate Facts
+  ansible.builtin.set_fact:
+    local_key_path: "{{ local_certs_dir }}/ingress-{{ cert_name }}.key"
+    local_cert_path: "{{ local_certs_dir }}/ingress-{{ cert_name }}.pem"
+    remote_key_path: "{{ certs_dir }}/ingress-{{ cert_name }}.key"
+    remote_cert_path: "{{ certs_dir }}/ingress-{{ cert_name }}.pem"
+  delegate_to: localhost
+
+- name: Create Certificate and Private Key
+  block:
+  - name: Create {{ cert_name }} Private Key
+    community.crypto.openssl_privatekey:
+      path: "{{ local_key_path }}"
+
+  # TODO: Allow more parameters to be provided
+  - name: Create certificate signing request (CSR) for new certificate
+    community.crypto.openssl_csr_pipe:
+      privatekey_path: "{{ local_key_path }}"
+      basic_constraints:
+        - 'CA:FALSE'
+      key_usage:
+        - digitalSignature
+        - nonRepudiation
+        - keyEncipherment
+        - dataEncipherment
+      subject_alt_name:
+        - "DNS:{{ dns_name }}"
+    register: csr
+
+  - name: Sign certificate with our CA
+    community.crypto.x509_certificate_pipe:
+      csr_content: "{{ csr.csr }}"
+      provider: ownca
+      ownca_path: "{{ local_ca_cert_path }}"
+      ownca_privatekey_path: "{{ local_ca_key_path }}"
+      # ownca_privatekey_passphrase: "{{ secret_ca_passphrase }}"
+      ownca_not_after: +365d  # valid for one year
+    register: certificate
+  
+  - name: Create certificate
+    copy:
+      dest: "{{ local_cert_path }}"
+      content: "{{ certificate.certificate }}"
+    when: certificate is changed
+  delegate_to: localhost
+  when: (existing_files.files | selectattr('path', 'equalto', remote_key_path) | list | length) == 0 or (existing_files.files | selectattr('path', 'equalto', remote_cert_path) | list | length) == 0
+#   when: ((existing_files.files | selectattr('path', 'equalto', key_path) | list | length) == 0) and (existing_files.files | selectattr('path', 'equalto', cert_path) | list | length) == 0))

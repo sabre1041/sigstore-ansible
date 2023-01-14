@@ -1,0 +1,59 @@
+---
+
+- name: Slurp Fulcio Certificates
+  ansible.builtin.slurp:
+    src: "{{ item }}"
+  loop:
+    - "{{ remote_fulcio_private_key }}"
+    - "{{ remote_fulcio_public_key }}"
+    - "{{ remote_fulcio_root_ca }}"
+  register: remote_fulcio_certificates
+
+## TODO: Reenable Once Secrets Supported
+# - name: Create Fulcio Secret
+#   containers.podman.podman_secret:
+#     name: fulcio-server-secret
+#     state: present
+#     force: true
+#     data: "{{ fulcio_server_secret | to_json }}"
+#   vars:
+#     fulcio_server_secret:
+#       "private": "{{ remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_private_key) | list | first }}"
+#       "cert": "{{ remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_public_key) | list | first }}"
+#       "password": "{{ fulcio_ca_passphrase | b64encode }}"
+
+- name: Create Fulcio ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ fulcio_server_secret_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: fulcio-server-secret
+        namespace: fulcio-system
+      data:
+        private: |
+          {{ (remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_private_key) | list | first).content | b64decode }}
+        cert: |
+          {{ (remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_root_ca) | list | first).content | b64decode }}
+        public: |
+          {{ (remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_public_key) | list | first).content | b64decode }}
+        password: "{{ fulcio_ca_passphrase  }}"
+
+- name: Create OIDC ConfigMap
+  ansible.builtin.template:
+    src: configmaps/fulcio-oidc-config.yaml
+    dest: "{{ fulcio_oidc_config }}"
+
+- name: Deploy Fulcio Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/fulcio/fulcio-server.yaml') | from_yaml }}"
+      configmap:
+        - "{{ fulcio_oidc_config }}"
+        - "{{ fulcio_server_secret_config }}"

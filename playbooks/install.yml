@@ -1,0 +1,5 @@
+- hosts: all
+  tasks:
+    - name: Include sigstore scaffolding role
+      ansible.builtin.include_role:
+        name: sigstore_scaffolding

@@ -1,0 +1,11 @@
+FROM registry.redhat.io/rhel8/go-toolset:latest AS builder
+
+RUN go install github.com/google/trillian/cmd/createtree@v1.3.10 && \
+    go clean -modcache && \
+    go clean -cache
+
+FROM registry.redhat.io/ubi8/ubi-micro:latest
+
+WORKDIR /
+
+COPY --from=builder /opt/app-root/src/go/bin/createtree /usrlocal/bin/

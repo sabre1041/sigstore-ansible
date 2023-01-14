@@ -1,0 +1,2 @@
+backends:{backend:{name:"trillian"  backend_spec:"trillian-logserver:8091"}}  
+log_configs:{config:{log_id:{{ trillian_tree_id }}  prefix:"{{ ct_logprefix }}"  roots_pem_file:"/ctfe-keys/fulcio-0"  private_key:{[type.googleapis.com/keyspb.PEMKeyFile]:{path:"/ctfe-keys/private"  password:"{{ ctlog_ca_passphrase }}"}}  ext_key_usages:"CodeSigning"  log_backend_name:"trillian"}}

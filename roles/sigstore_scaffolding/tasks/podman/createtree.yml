@@ -1,0 +1,65 @@
+---
+
+- name: Check if Trillian treeid Config exists
+  ansible.builtin.stat:
+    path: "{{ treeid_config }}"
+  register: treeid_config_stat
+
+
+- name: Obtain existing ctlog ID
+  block:
+    - name: Obtain existing Trillian Treeid config
+      ansible.builtin.slurp:
+        src: "{{ treeid_config }}"
+      register: existing_treeid_config
+
+    - name: Set Trillian Tree ID fact
+      ansible.builtin.set_fact:
+        trillian_tree_id: "{{ (existing_treeid_config.content | b64decode | from_yaml)['data']['tree_id'] }}"
+      when: '"tree_id" in (existing_treeid_config.content | b64decode | from_yaml)["data"]'
+  when: tree_id is not defined and treeid_config_stat.stat.exists
+
+
+# Create Tree ID
+- name: Create Tree ID
+  block:
+    - name: createtree container
+      containers.podman.podman_container:
+        name: createtree
+        image: "{{ scaffolding_utils_image }}"
+        command: createtree --admin_server trillian-logserver:8091
+        network: "{{ sigstore_podman_network }}"
+        detach: false
+      register: createtree_container
+
+    - name: Obtain Createtree logs
+      ansible.builtin.command:
+        cmd: podman logs {{ createtree_container.container.Id }}
+      register: createtree_container_logs
+
+    - name: Set Trillian tree id
+      ansible.builtin.set_fact:
+        trillian_tree_id: "{{ createtree_container_logs.stdout_lines[0] }}"
+
+    - name: Remove createtree container
+      containers.podman.podman_container:
+        name: createtree
+        state: absent
+
+    - name: Create Trillian treeid ConfigMap
+      ansible.builtin.copy:
+        content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+        dest: "{{ treeid_config }}"
+      vars:
+        configmap_content:
+          kind: ConfigMap
+          apiVersion: v1
+          metadata:
+            name: trillian-treeid
+            namespace: rekor-system
+          data:
+            tree_id: "{{ trillian_tree_id }}"
+
+  when: trillian_tree_id is not defined or not treeid_config_stat.stat.exists
+
+

@@ -1,0 +1,31 @@
+---
+
+- name: Create Trillian Secret
+  containers.podman.podman_secret:
+    name: trillian-mysql
+    state: present
+    force: true
+    data: "{{ trillian_mysql_secret | to_json }}"
+  vars:
+    trillian_mysql_secret:
+      "mysql-root-password": "{{ trillian.mysql.rootPassword }}"
+      "mysql-password": "{{ trillian.mysql.password | b64encode }}"
+      "mysql-database": "{{ trillian.mysql.database | b64encode }}"
+      "mysql-user": "{{ trillian.mysql.user | b64encode }}"
+
+- name: Build Trillian Manifest specs
+  ansible.builtin.set_fact:
+    podman_specs: "{{ podman_specs | default([]) + [ content ] }}"
+  vars:
+    content:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', item) | from_yaml }}"
+  loop: "{{ sigstore_trillian_templates }}"
+
+
+- name: Install Trillian Manifests
+  ansible.builtin.include_tasks: install_manifest.yml
+  loop: "{{ podman_specs }}"
+  loop_control:
+    loop_var: podman_spec

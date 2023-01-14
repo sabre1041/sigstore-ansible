@@ -1,0 +1,17 @@
+---
+
+- name: Set location of Podman Play Manifest
+  ansible.builtin.set_fact:
+    kube_play_file: "{{ kube_manifest_dir + '/' + podman_spec.kube_file_content.metadata.namespace + '_' + podman_spec.kube_file_content.metadata.name + '.yml' }}"
+
+- name: Copy Manifest to Server
+  ansible.builtin.copy:
+    content: "{{ podman_spec.kube_file_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ kube_play_file }}"
+
+- name: Podman Play {{ kube_play_file | basename }}"
+  containers.podman.podman_play:
+    kube_file: "{{ kube_play_file }}"
+    network: "{{ podman_spec.network | default('podman') }}"
+    configmap: "{{ podman_spec.configmap | default(omit) }}"
+    state: "{{ podman_spec.state | default('started') }}"

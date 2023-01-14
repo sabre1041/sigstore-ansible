@@ -1,0 +1,13 @@
+---
+
+- name: Install System Packages dependencies
+  ansible.builtin.package:
+    name: "{{ system_packages }}"
+
+- name: Install Cockpit
+  ansible.builtin.include_role:
+    name: cockpit
+  vars:
+    cockpit_packages: "{{ cockpit.cockpit_packages }}"
+    cockpit_manage_firewall: "{{ cockpit.cockpit_manage_firewall }}"
+  when: cockpit.enabled | bool

@@ -1,0 +1,11 @@
+---
+
+- name: Install Operating System Components
+  ansible.builtin.include_tasks: os.yml
+  when: not skip_os_install
+
+- name: Create Certificates
+  ansible.builtin.include_tasks: certificates.yml
+
+- name: Execute Podman Actions
+  ansible.builtin.include_tasks: podman.yml
