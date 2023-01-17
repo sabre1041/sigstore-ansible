@@ -18,3 +18,6 @@
 
 - name: Configure/Deploy ctlog
   ansible.builtin.include_tasks: podman/ctlog.yml
+
+- name: Configure/Deploy nginx
+  ansible.builtin.include_tasks: podman/nginx.yml

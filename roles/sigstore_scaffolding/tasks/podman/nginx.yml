@@ -1,0 +1,87 @@
+---
+
+- name: Confirmed required parameters provided
+  ansible.builtin.assert:
+    that:
+      - base_hostname is defined
+      - base_hostname | trim | length > 0
+    msg: "'base_hostname' must be specified"
+
+- name: Get sigstore network details
+  containers.podman.podman_network:
+    name: "{{ sigstore_podman_network }}"
+  register: sigstore_podman_network_results
+
+- name: Set DNS Resolver
+  ansible.builtin.set_fact:
+    dns_resolver: "{{ sigstore_podman_network_results.network.subnets[0].gateway }}"
+
+- name: Slurp ingress Certificates
+  ansible.builtin.slurp:
+    src: "{{ item }}"
+  loop:
+    - "{{ remote_sigstore_ca }}"
+    - "{{ certs_dir }}/ingress-rekor.pem"
+    - "{{ certs_dir }}/ingress-rekor.key"
+    - "{{ certs_dir }}/ingress-tuf.pem"
+    - "{{ certs_dir }}/ingress-tuf.key"
+    - "{{ certs_dir }}/ingress-fulcio.pem"
+    - "{{ certs_dir }}/ingress-fulcio.key"
+  register: remote_ingress_certificates
+
+
+- name: Create nginx certs ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ nginx_certs_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: nginx-certs
+        namespace: nginx-system
+      data:
+        ingress-rekor.pem: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-rekor.pem') | list | first).content | b64decode }}
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', remote_sigstore_ca) | list | first).content | b64decode }}
+        ingress-rekor.key: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-rekor.key') | list | first).content | b64decode }}
+        ingress-tuf.pem: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-tuf.pem') | list | first).content | b64decode }}
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', remote_sigstore_ca) | list | first).content | b64decode }}
+        ingress-tuf.key: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-tuf.key') | list | first).content | b64decode }}
+        ingress-fulcio.pem: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-fulcio.pem') | list | first).content | b64decode }}
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', remote_sigstore_ca) | list | first).content | b64decode }}
+        ingress-fulcio.key: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-fulcio.key') | list | first).content | b64decode }}
+
+
+- name: Create nginx config ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ nginx_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: nginx-config
+        namespace: nginx-system
+      data:
+        nginx.conf: |
+          {{ lookup('ansible.builtin.template', 'configs/nginx.conf.j2') }}
+
+
+- name: Deploy nginx Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/nginx/nginx.yaml') | from_yaml }}"
+      configmap:
+        - "{{ nginx_certs_config }}"
+        - "{{ nginx_config }}"

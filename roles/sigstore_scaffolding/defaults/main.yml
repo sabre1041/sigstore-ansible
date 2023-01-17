@@ -73,6 +73,8 @@ ctlog_secret_config: "{{ kube_configmap_dir }}/ctlog-secret.yaml"
 tuf_secret_config: "{{ kube_configmap_dir }}/tuf-secret.yaml"
 treeid_config: "{{ kube_configmap_dir }}/treeid-config.yaml"
 rekor_sharding_config: "{{ kube_configmap_dir }}/rekor-sharding-config.yaml"
+nginx_config: "{{ kube_configmap_dir }}/nginx-config.yaml"
+nginx_certs_config: "{{ kube_configmap_dir }}/nginx-certs.yaml"
 
 
 base_hostname: ""
