@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/component: tuf
+    app.kubernetes.io/instance: scaffold
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: tuf
+    helm.sh/chart: tuf-0.1.4
+    pod-template-hash: 68964fb9d
+  name: tuf
+  namespace: tuf-system
+spec:
+  containers:
+    - image: quay.io/ablock/tuf-server@sha256:c4f534807b331e97b107d908b7e0cf14a896399bc372bca6a2c7e4f6d730807c
+      #image: ghcr.io/sigstore/scaffolding/server@sha256:719ea3fe44c52af5a5fedab2168429872e37e97b9f063977fc164d60a5a14b53
+      imagePullPolicy: IfNotPresent
+      name: tuf
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+      env:
+        - name: NAMESPACE
+          value: tuf-system
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /var/run/tuf-secrets
+          name: tuf-secrets
+          readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: minikube
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: tuf
+  serviceAccountName: tuf
+  terminationGracePeriodSeconds: 30
+  tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  volumes:
+    - name: tuf-secrets
+      configMap:
+        items:
+          - key: ctlog-public-key
+            path: ctlog-pubkey
+          - key: rekor-public-key
+            path: rekor-pubkey
+          - key: fulcio-root
+            path: fulcio-cert
+        name: tuf-secret

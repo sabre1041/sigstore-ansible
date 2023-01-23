@@ -51,6 +51,7 @@
       csr_content: "{{ ca_csr.csr }}"
       privatekey_path: "{{ local_sigstore_private_key }}"
       provider: selfsigned
+      selfsigned_not_after: +365d  # valid for one year
   delegate_to: localhost
   when: (certs_dir_files.files | selectattr('path', 'equalto', remote_sigstore_ca) | list | length) == 0
 

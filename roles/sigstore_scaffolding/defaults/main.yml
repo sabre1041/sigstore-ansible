@@ -36,12 +36,12 @@ trillian:
    host: trillian-mysql
    port: 3306
 
-# TODO: Create real directories
-kube_manifest_dir: /tmp
-kube_configmap_dir: /tmp
-
 config_dir: /etc/sigstore
 certs_dir: "{{ config_dir }}/certs"
+kube_manifest_dir: "{{ config_dir }}/manifests"
+kube_configmap_dir: "{{ config_dir }}/configs"
+
+
 local_certs_dir: /tmp/sigstore/certs
 
 sigstore_private_key_filename: sigstore.key
@@ -51,6 +51,8 @@ fulcio_public_key_filename: fulcio.pub
 fulcio_root_ca_filename: fulcio.pem
 ctlog_private_key_filename: ctlog.key
 ctlog_public_key_filename: ctlog.pub
+rekor_signer_filename: rekor-signer.key
+rekor_public_key_filename: rekor-pub-key.pub
 
 local_sigstore_private_key: "{{ local_certs_dir }}/{{ sigstore_private_key_filename }}"
 local_sigstore_ca: "{{ local_certs_dir }}/{{ sigstore_ca_filename }}"
@@ -59,6 +61,8 @@ local_fulcio_public_key: "{{ local_certs_dir }}/{{ fulcio_public_key_filename }}
 local_fulcio_root_ca: "{{ local_certs_dir }}/{{ fulcio_root_ca_filename }}"
 local_ctlog_private_key: "{{ local_certs_dir }}/{{ ctlog_private_key_filename }}"
 local_ctlog_public_key: "{{ local_certs_dir }}/{{ ctlog_public_key_filename }}"
+local_rekor_signer: "{{ local_certs_dir }}/{{ rekor_signer_filename }}"
+local_rekor_public_key: "{{ local_certs_dir }}/{{ rekor_public_key_filename }}"
 remote_sigstore_private_key: "{{ certs_dir }}/{{ sigstore_private_key_filename }}"
 remote_sigstore_ca: "{{ certs_dir }}/{{ sigstore_ca_filename }}"
 remote_fulcio_private_key: "{{ certs_dir }}/{{ fulcio_private_key_filename }}"
@@ -66,6 +70,9 @@ remote_fulcio_public_key: "{{ certs_dir }}/{{ fulcio_public_key_filename }}"
 remote_fulcio_root_ca: "{{ certs_dir }}/{{ fulcio_root_ca_filename }}"
 remote_ctlog_private_key: "{{ certs_dir }}/{{ ctlog_private_key_filename }}"
 remote_ctlog_public_key: "{{ certs_dir }}/{{ ctlog_public_key_filename }}"
+remote_rekor_signer: "{{ certs_dir }}/{{ rekor_signer_filename }}"
+remote_rekor_public_key: "{{ certs_dir }}/{{ rekor_public_key_filename }}"
+
 
 fulcio_oidc_config: "{{ kube_configmap_dir }}/fulcio-oidc-config.yaml"
 fulcio_server_secret_config: "{{ kube_configmap_dir }}/fulcio-server-secret.yaml"
@@ -81,6 +88,7 @@ base_hostname: ""
 
 fulcio_ca_passphrase: sigstore
 ctlog_ca_passphrase: sigstore
+rekor_ca_passphrase: sigstore
 ct_logprefix: sigstoreansible
 
 scaffolding_utils_image: quay.io/ablock/sigstore-scaffolding-helper:latest

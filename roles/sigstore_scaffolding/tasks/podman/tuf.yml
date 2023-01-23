@@ -1,0 +1,59 @@
+---
+
+- name: Confirmed required parameters provided
+  ansible.builtin.assert:
+    that:
+      - base_hostname is defined
+      - base_hostname | trim | length > 0
+    msg: "'base_hostname' must be specified"
+
+- name: Slurp tuf Certificates
+  ansible.builtin.slurp:
+    src: "{{ item }}"
+  loop:
+    - "{{ remote_ctlog_public_key }}"
+    - "{{ remote_fulcio_root_ca }}"
+  register: remote_tuf_certificates
+
+- name: Retrieve Rekor Public Key
+  uri:
+    url: "https://rekor.{{ base_hostname }}/api/v1/log/publicKey"
+    method: GET
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  until: "rekor_public_key_result.status == 200"
+  retries: 5
+  delay: 10
+  register: rekor_public_key_result
+  delegate_to: localhost
+
+
+- name: Create tuf ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ tuf_secret_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: tuf-secret
+        namespace: tuf-system
+      data:
+        ctlog-public-key: |
+          {{ (remote_tuf_certificates.results | selectattr('source', 'equalto', remote_ctlog_public_key) | list | first).content | b64decode }}
+        fulcio-root: |
+          {{ (remote_tuf_certificates.results | selectattr('source', 'equalto', remote_fulcio_root_ca) | list | first).content | b64decode }}
+        rekor-public-key: |
+          {{ rekor_public_key_result.content }}
+
+- name: Deploy tuf Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/tuf/tuf.yaml') | from_yaml }}"
+      configmap:
+        - "{{ tuf_secret_config }}"

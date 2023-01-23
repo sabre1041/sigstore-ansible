@@ -4,6 +4,14 @@
   containers.podman.podman_network:
     name: "{{ sigstore_podman_network }}"
 
+- name: Create Manifests/Configs Directory
+  ansible.builtin.file:
+    state: directory
+    dest: "{{ item }}"
+  loop:
+    - "{{ kube_manifest_dir }}"
+    - "{{ kube_configmap_dir }}"
+
 - name: Configure/Deploy Trillian
   ansible.builtin.include_tasks: podman/trillian.yml
 
@@ -21,3 +29,6 @@
 
 - name: Configure/Deploy nginx
   ansible.builtin.include_tasks: podman/nginx.yml
+
+- name: Configure/Deploy tuf
+  ansible.builtin.include_tasks: podman/tuf.yml

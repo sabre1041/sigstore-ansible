@@ -18,8 +18,12 @@
   - name: Create certificate signing request (CSR) for new certificate
     community.crypto.openssl_csr_pipe:
       privatekey_path: "{{ local_key_path }}"
+      subject:
+        commonName: "{{ dns_name }}"
       basic_constraints:
         - 'CA:FALSE'
+      extended_key_usage:
+        - serverAuth
       key_usage:
         - digitalSignature
         - nonRepudiation

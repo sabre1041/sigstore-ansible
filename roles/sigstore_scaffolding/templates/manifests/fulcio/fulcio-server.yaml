@@ -21,7 +21,7 @@ spec:
         - /var/run/fulcio-secrets/cert.pem
         - --fileca-key-passwd
         - {{ fulcio_ca_passphrase  }}
-        - --ct-log-url=http://ctlog/{{ ct_logprefix }}
+        - --ct-log-url=http://ctlog:6962/{{ ct_logprefix }}
       # env:
       #   - name: PASSWORD
       #     valueFrom:
