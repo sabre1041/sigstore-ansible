@@ -1,0 +1,79 @@
+---
+
+- name: Confirmed required parameters provided
+  ansible.builtin.assert:
+    that:
+      - base_hostname is defined
+      - base_hostname | trim | length > 0
+    msg: "'base_hostname' must be specified"
+
+- name: Create Keycloak PostgreSQL Secret
+  containers.podman.podman_secret:
+    name: keycloak-postgresql
+    state: present
+    force: true
+    data: "{{ keycloak_postgresql_secret | to_json }}"
+  vars:
+    keycloak_postgresql_secret:
+      "username": "{{ keycloak_postgresql_user | b64encode }}"
+      "password": "{{ keycloak_postgresql_password | b64encode }}"
+      "database": "{{ keycloak_postgresql_database | b64encode }}"
+
+- name: Deploy Keycloak PostgreSQL Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/keycloak/keycloak-postgresql.yaml') | from_yaml }}"
+
+- name: Slurp ingress Certificates
+  ansible.builtin.slurp:
+    src: "{{ item }}"
+  loop:
+    - "{{ remote_sigstore_ca }}"
+    - "{{ certs_dir }}/ingress-keycloak.pem"
+    - "{{ certs_dir }}/ingress-keycloak.key"
+  register: remote_keycloak_certificates
+
+- name: Create Keycloak certs ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ keycloak_certs_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: keycloak-certs
+        namespace: keycloak-system
+      data:
+        ingress-keycloak.pem: |
+          {{ (remote_keycloak_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-keycloak.pem') | list | first).content | b64decode }}
+          {{ (remote_keycloak_certificates.results | selectattr('source', 'equalto', remote_sigstore_ca) | list | first).content | b64decode }}
+        ingress-keycloak.key: |
+          {{ (remote_keycloak_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-keycloak.key') | list | first).content | b64decode }}
+
+- name: Create Keycloak Secret
+  containers.podman.podman_secret:
+    name: keycloak
+    state: present
+    force: true
+    data: "{{ keycloak_secret | to_json }}"
+  vars:
+    keycloak_secret:
+      "admin-username": "{{ keycloak_admin_user | b64encode }}"
+      "admin-password": "{{ keycloak_admin_password | b64encode }}"
+
+- name: Deploy Keycloak Pod
+  ansible.builtin.include_tasks: podman/install_manifest.yml
+  vars:
+    podman_spec:
+      state: "started"
+      network: "{{ sigstore_podman_network }}"
+      kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/keycloak/keycloak.yaml') | from_yaml }}"
+      configmap:
+        - "{{ keycloak_certs_config }}"
+
+- name: Setup Keycloak
+  ansible.builtin.include_tasks: keycloak/setup.yml

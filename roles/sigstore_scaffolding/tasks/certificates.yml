@@ -61,6 +61,7 @@
     - fulcio
     - rekor
     - tuf
+    - keycloak
   loop_control:
     loop_var: cert_name
   vars:

@@ -16,7 +16,7 @@
   register: remote_tuf_certificates
 
 - name: Retrieve Rekor Public Key
-  uri:
+  ansible.builtin.uri:
     url: "https://rekor.{{ base_hostname }}/api/v1/log/publicKey"
     method: GET
     status_code: 200

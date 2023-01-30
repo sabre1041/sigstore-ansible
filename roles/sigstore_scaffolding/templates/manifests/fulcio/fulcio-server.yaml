@@ -22,6 +22,9 @@ spec:
         - --fileca-key-passwd
         - {{ fulcio_ca_passphrase  }}
         - --ct-log-url=http://ctlog:6962/{{ ct_logprefix }}
+      env:
+        - name: SSL_CERT_DIR
+          value: /certs
       # env:
       #   - name: PASSWORD
       #     valueFrom:
@@ -48,6 +51,9 @@ spec:
         #   name: oidc-info
         - mountPath: /var/run/fulcio-secrets
           name: fulcio-cert
+          readOnly: true
+        - mountPath: /certs
+          name: nginx-certs
           readOnly: true
   dnsPolicy: ClusterFirst
   enableServiceLinks: true
@@ -96,4 +102,8 @@ spec:
           - key: cert
             path: cert.pem
         name: fulcio-server-secret
+    - configMap:
+        defaultMode: 420
+        name: nginx-certs
+      name: nginx-certs
         # secretName: fulcio-server-secret

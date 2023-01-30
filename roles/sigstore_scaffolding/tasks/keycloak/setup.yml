@@ -1,0 +1,71 @@
+---
+
+- name: Confirmed required parameters provided
+  ansible.builtin.assert:
+    that:
+      - base_hostname is defined
+      - base_hostname | trim | length > 0
+    msg: "'base_hostname' must be specified"
+
+- name: Set Keycloak Hostname
+  ansible.builtin.set_fact:
+    keycloak_hostname: "https://keycloak.{{ base_hostname }}"
+
+- name: Set Keycloak Hostname
+  ansible.builtin.set_fact:
+    keycloak_auth_url: "{{ keycloak_hostname }}{{ keycloak_auth_endpoint }}"
+
+- name: "Wait until Keycloak becomes active and ready"
+  ansible.builtin.uri:
+    url: "{{ keycloak_hostname }}/health/ready"
+    method: GET
+    validate_certs: false
+  register: keycloak_status
+  until: keycloak_status.status == 200 and keycloak_status.json.status == "UP"
+  retries: 25
+  delay: 10
+  delegate_to: localhost
+
+- name: Create sigstore realm
+  community.general.keycloak_realm:
+    auth_client_id: admin-cli
+    auth_keycloak_url: "{{ keycloak_auth_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    id: "{{ keycloak_realm }}"
+    realm: "{{ keycloak_realm }}"
+    state: present
+    enabled: true
+    validate_certs: no
+  delegate_to: localhost
+
+- name: Create sigstore client 
+  community.general.keycloak_client:
+    auth_client_id: admin-cli
+    auth_keycloak_url: "{{ keycloak_auth_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ keycloak_sigstore_client }}"
+    public_client: true
+    redirect_uris: "{{ keycloak_sigstore_client_redirect_uris }}"
+    default_client_scopes:
+      - profile
+      - email
+    state: present
+    validate_certs: no
+  delegate_to: localhost
+
+- name: Create Users
+  block:
+    - name: Generate Token
+      ansible.builtin.include_tasks: keycloak/generate_token.yml
+
+    - name: Create Users
+      ansible.builtin.include_tasks: keycloak/create_user.yml
+      loop_control:
+        loop_var: keycloak_user
+      loop: "{{ keycloak_sigstore_users }}"
+  when: keycloak_sigstore_users | length > 0

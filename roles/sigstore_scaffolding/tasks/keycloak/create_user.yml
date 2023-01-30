@@ -1,0 +1,70 @@
+---
+
+- name: Query for User {{ keycloak_user.username }}
+  ansible.builtin.uri:
+    url: "{{ keycloak_auth_url }}/admin/realms/{{ keycloak_realm }}/users?briefRepresentation=true&first=0&max=20&search={{ keycloak_user.username }}"
+    headers:
+      Accept: application/json
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-type: application/json
+    method: GET
+    validate_certs: false
+    status_code:
+      - 200
+  register: keycloak_user_result
+  delegate_to: localhost
+
+- name: Create User {{ keycloak_user.username }}
+  ansible.builtin.uri:
+    url: "{{ keycloak_auth_url }}/admin/realms/{{ keycloak_realm }}/users"
+    headers:
+      Accept: application/json
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-type: application/json
+    method: POST
+    body_format: json
+    validate_certs: false
+    body:
+      email: "{{ keycloak_user.email }}"
+      emailVerified: "true"
+      enabled: true
+      firstName: "{{ keycloak_user.first_name }}"
+      groups: []
+      lastName: "{{ keycloak_user.last_name }}"
+      username: "{{ keycloak_user.username }}"
+    status_code:
+      - 201
+  delegate_to: localhost
+  when: keycloak_user_result.json | selectattr('username', 'equalto', keycloak_user.username) | list | length == 0
+
+- name: Query Update List of Users for {{ keycloak_user.username }}
+  ansible.builtin.uri:
+    url: "{{ keycloak_auth_url }}/admin/realms/{{ keycloak_realm }}/users?briefRepresentation=true&first=0&max=20&search={{ keycloak_user.username }}"
+    headers:
+      Accept: application/json
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-type: application/json
+    method: GET
+    validate_certs: false
+    status_code:
+      - 200
+  register: keycloak_user_result
+  delegate_to: localhost
+
+- name: Set User Password for {{ keycloak_user.username }}
+  ansible.builtin.uri:
+    url: "{{ keycloak_auth_url }}/admin/realms/{{ keycloak_realm }}/users/{{ (keycloak_user_result.json | selectattr('username', 'equalto', keycloak_user.username) | list | first).id }}/reset-password"
+    headers:
+      Accept: application/json
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-type: application/json
+    method: PUT
+    body_format: json
+    validate_certs: false
+    body:
+      temporary: false
+      type: "password"
+      value: "{{ keycloak_user.password }}"
+    status_code:
+      - 204
+  delegate_to: localhost

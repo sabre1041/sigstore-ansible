@@ -28,7 +28,15 @@ http {
     #gzip  on;
 
     include /etc/nginx/conf.d/*.conf;
+
+    server {
+      listen 80 default_server;
+      server_name _;
+      return 301 https://$host$request_uri;
+    } 
+
 }
+
 
 stream {  
 
@@ -36,22 +44,25 @@ stream {
     rekor.{{ base_hostname }}  rekor-server:3000;
     tuf.{{ base_hostname }}  tuf:8080;
     fulcio.{{ base_hostname }}  fulcio-server:5555;
+    keycloak.{{ base_hostname }}  keycloak:8080;
   }
 
   map $ssl_server_name $targetCert {
     rekor.{{ base_hostname }} /certs/ingress-rekor.pem;
     tuf.{{ base_hostname }} /certs/ingress-tuf.pem;
     fulcio.{{ base_hostname }} /certs/ingress-fulcio.pem;
+    keycloak.{{ base_hostname }} /certs/ingress-keycloak.pem;
   }
 
   map $ssl_server_name $targetCertKey {
     rekor.{{ base_hostname }}  /certs/ingress-rekor.key;
     tuf.{{ base_hostname }}  /certs/ingress-tuf.key;
     fulcio.{{ base_hostname }}  /certs/ingress-fulcio.key;
+    keycloak.{{ base_hostname }}  /certs/ingress-keycloak.key;
   }
   
   server {
-    listen 443 ssl; 
+    listen 443 ssl;
     ssl_protocols       TLSv1.2;
     ssl_certificate     $targetCert;
     ssl_certificate_key $targetCertKey;
@@ -61,5 +72,6 @@ stream {
     resolver {{ dns_resolver }} ipv6=off;
       
     proxy_pass $targetBackend;
-  } 
+  }
+
 }

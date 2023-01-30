@@ -1,0 +1,29 @@
+- name: Ensure keycloak_auth_url is set
+  fail:
+    msg: "keycloak_auth_url must be set"
+  when: not keycloak_auth_url | default('') | length
+
+- name: Ensure keycloak_admin_user and keycloak_admin_password are set
+  fail:
+    msg: "keycloak_admin_user and keycloak_admin_password must be set"
+  when: not keycloak_admin_user | default('') | length or not keycloak_admin_password | default('') | length
+
+- name: Create SSO token
+  uri:
+    url: "{{ keycloak_auth_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: "password"
+      client_id: "admin-cli"
+      username: "{{ keycloak_admin_user }}"
+      password: "{{ keycloak_admin_password }}"
+    validate_certs: false
+  #no_log: true
+  register: keycloak_token_result
+  delegate_to: localhost
+
+- name: Set SSO Token
+  ansible.builtin.set_fact:
+    keycloak_token: "{{ keycloak_token_result.json.access_token }}"
+  no_log: true

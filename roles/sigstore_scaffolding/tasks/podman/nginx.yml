@@ -27,6 +27,8 @@
     - "{{ certs_dir }}/ingress-tuf.key"
     - "{{ certs_dir }}/ingress-fulcio.pem"
     - "{{ certs_dir }}/ingress-fulcio.key"
+    - "{{ certs_dir }}/ingress-keycloak.pem"
+    - "{{ certs_dir }}/ingress-keycloak.key"
   register: remote_ingress_certificates
 
 
@@ -57,6 +59,11 @@
           {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', remote_sigstore_ca) | list | first).content | b64decode }}
         ingress-fulcio.key: |
           {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-fulcio.key') | list | first).content | b64decode }}
+        ingress-keycloak.pem: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-keycloak.pem') | list | first).content | b64decode }}
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', remote_sigstore_ca) | list | first).content | b64decode }}
+        ingress-keycloak.key: |
+          {{ (remote_ingress_certificates.results | selectattr('source', 'equalto', certs_dir + '/ingress-keycloak.key') | list | first).content | b64decode }}
 
 
 - name: Create nginx config ConfigMap

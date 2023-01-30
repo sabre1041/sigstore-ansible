@@ -1,5 +1,12 @@
 ---
 
+- name: Confirmed required parameters provided
+  ansible.builtin.assert:
+    that:
+      - base_hostname is defined
+      - base_hostname | trim | length > 0
+    msg: "'base_hostname' must be specified"
+
 - name: Slurp Fulcio Certificates
   ansible.builtin.slurp:
     src: "{{ item }}"
@@ -22,6 +29,22 @@
 #       "cert": "{{ remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_public_key) | list | first }}"
 #       "password": "{{ fulcio_ca_passphrase | b64encode }}"
 
+
+- name: Create Fulcio Config ConfigMap
+  ansible.builtin.copy:
+    content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
+    dest: "{{ fulcio_server_config }}"
+  vars:
+    configmap_content:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: fulcio-config
+        namespace: fulcio-system
+      data:
+        config.json: |
+          {{ lookup('ansible.builtin.template', 'configs/fulcio-oidc.conf.j2') | to_json }}
+
 - name: Create Fulcio ConfigMap
   ansible.builtin.copy:
     content: "{{ configmap_content | to_nice_yaml(indent=2) }}"
@@ -42,10 +65,6 @@
           {{ (remote_fulcio_certificates.results | selectattr('source', 'equalto', remote_fulcio_public_key) | list | first).content | b64decode }}
         password: "{{ fulcio_ca_passphrase  }}"
 
-- name: Create OIDC ConfigMap
-  ansible.builtin.template:
-    src: configmaps/fulcio-oidc-config.yaml
-    dest: "{{ fulcio_oidc_config }}"
 
 - name: Deploy Fulcio Pod
   ansible.builtin.include_tasks: podman/install_manifest.yml
@@ -55,5 +74,6 @@
       network: "{{ sigstore_podman_network }}"
       kube_file_content: "{{ lookup('ansible.builtin.template', 'manifests/fulcio/fulcio-server.yaml') | from_yaml }}"
       configmap:
-        - "{{ fulcio_oidc_config }}"
+        - "{{ fulcio_server_config }}"
         - "{{ fulcio_server_secret_config }}"
+        - "{{ nginx_certs_config }}"

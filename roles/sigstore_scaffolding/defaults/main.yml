@@ -74,7 +74,7 @@ remote_rekor_signer: "{{ certs_dir }}/{{ rekor_signer_filename }}"
 remote_rekor_public_key: "{{ certs_dir }}/{{ rekor_public_key_filename }}"
 
 
-fulcio_oidc_config: "{{ kube_configmap_dir }}/fulcio-oidc-config.yaml"
+fulcio_server_config: "{{ kube_configmap_dir }}/fulcio-config.yaml"
 fulcio_server_secret_config: "{{ kube_configmap_dir }}/fulcio-server-secret.yaml"
 ctlog_secret_config: "{{ kube_configmap_dir }}/ctlog-secret.yaml"
 tuf_secret_config: "{{ kube_configmap_dir }}/tuf-secret.yaml"
@@ -82,8 +82,9 @@ treeid_config: "{{ kube_configmap_dir }}/treeid-config.yaml"
 rekor_sharding_config: "{{ kube_configmap_dir }}/rekor-sharding-config.yaml"
 nginx_config: "{{ kube_configmap_dir }}/nginx-config.yaml"
 nginx_certs_config: "{{ kube_configmap_dir }}/nginx-certs.yaml"
+keycloak_certs_config: "{{ kube_configmap_dir }}/keycloak-certs.yaml"
 
-
+setup_host_dns: true
 base_hostname: ""
 
 fulcio_ca_passphrase: sigstore
@@ -92,3 +93,24 @@ rekor_ca_passphrase: sigstore
 ct_logprefix: sigstoreansible
 
 scaffolding_utils_image: quay.io/ablock/sigstore-scaffolding-helper:latest
+
+keycloak_postgresql_user: "keycloak"
+keycloak_postgresql_password: "keycloak"
+keycloak_postgresql_database: "keycloak"
+keycloak_admin_user: "admin"
+keycloak_admin_password: "keycloaksigstore1234@"
+keycloak_auth_realm: master
+keycloak_realm: sigstore
+keycloak_client: sigstore
+keycloak_auth_endpoint: ""
+
+keycloak_sigstore_client: sigstore
+keycloak_sigstore_client_redirect_uris:
+  - "http://localhost/auth/callback"
+
+keycloak_sigstore_users:
+ - username: jdoe
+   first_name: John
+   last_name: Doe
+   email: jdoe@redhat.com
+   password: mysecurepassword
