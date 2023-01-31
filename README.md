@@ -80,16 +80,25 @@ Execute the following commands to execute the automation:
 ansible-playbook -i inventory playbooks/install.yml -e base_hostname=<base_hostname>
 ```
 
+### Add the root CA that was created to your local truststore.
+
+The certificate can be downloaded from the browser Certificate Viewer by navigating to `https://rekor.<base_domain>`.
+Download the _root_ certiicate that issued the rekor certificate.
+In Red Hat based systems, the following commands will add a CA to the system truststore.
+
+```shell
+$ sudo openssl x509 -in ~/Downloads/root-cert-from-browser -out sigstore-ca.pem --outform PEM
+$ sudo mv sigstore-ca.pem /etc/pki/ca-trust/source/anchors/
+$ sudo update-ca-trust
+```
+
 ## Signing a Container
 
 Utilize the following steps to sign a container that has been published to an OCI registry
 
-1. Add the root CA that was created to your local truststore. The certificate can be obtained by navigating to `https://rekor.<base_domain>` in a browser.
-
-2. Export the following environment variables substituting `base_hostname` with the value used as part of the provisioning
+1. Export the following environment variables substituting `base_hostname` with the value used as part of the provisioning
 
 ```shell
-export COSIGN_EXPERIMENTAL=1
 export KEYCLOAK_REALM=sigstore
 export BASE_HOSTNAME=<base_hostname>
 export FULCIO_URL=https://fulcio.$BASE_HOSTNAME
@@ -99,7 +108,7 @@ export TUF_URL=https://tuf.$BASE_HOSTNAME
 export KEYCLOAK_OIDC_ISSUER=$KEYCLOAK_URL/realms/$KEYCLOAK_REALM
 ```
 
-3. Initialize the TUF roots
+2. Initialize the TUF roots
 
 ```shell
 cosign initialize --mirror=$TUF_URL --root=$TUF_URL/root.json
@@ -107,18 +116,24 @@ cosign initialize --mirror=$TUF_URL --root=$TUF_URL/root.json
 
 Note: If you have used `cosign` previously, you may need to delete the `~/.sigstore` directory
 
-4. Sign the desired container
+3. Sign the desired container
 
 ```shell
-cosign sign --force -y --fulcio-url=$FULCIO_URL --rekor-url=$REKOR_URL --oidc-issuer=$KEYCLOAK_OIDC_ISSUER  <image>
+cosign sign -y --fulcio-url=$FULCIO_URL --rekor-url=$REKOR_URL --oidc-issuer=$KEYCLOAK_OIDC_ISSUER  <image>
 ```
 
 Authenticate with the Keycloak instance using the desired credentials.
 
-5. Verify the signed image
+4. Verify the signed image
+
+Refer to this example that verifies an image signed with email identity `sigstore-user@email.com` and issuer `https://github.com/login/oauth`.
 
 ```shell
-cosign verify --rekor-url=$REKOR_URL <image>
+cosign verify \
+--rekor-url=$REKOR_URL \
+--certificate-identity-regexp sigstore-user \
+--certificate-oidc-issuer-regexp keycloak  \
+<image>
 ```
 
 If the signature verification did not result in an error, the deployment of Sigstore was successful!
