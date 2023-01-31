@@ -118,7 +118,7 @@ Authenticate with the Keycloak instance using the desired credentials.
 5. Verify the signed image
 
 ```shell
-cosign sign --force -y --fulcio-url=$FULCIO_URL --rekor-url=$REKOR_URL <image>
+cosign verify --rekor-url=$REKOR_URL <image>
 ```
 
 If the signature verification did not result in an error, the deployment of Sigstore was successful!
@@ -127,7 +127,6 @@ If the signature verification did not result in an error, the deployment of Sigs
 
 The following are planned next steps:
 
-- [ ] Replace Sigstore OIDC with Keycloak
 - [ ] Update `Pod` manifests to `Deployment` manifests
 - [ ] Configure pods as systemd services
 
