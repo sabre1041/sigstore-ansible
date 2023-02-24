@@ -123,6 +123,30 @@ cosign verify --rekor-url=$REKOR_URL <image>
 
 If the signature verification did not result in an error, the deployment of Sigstore was successful!
 
+## Execution Environments support
+
+This deployment can be run inside an [Ansible Execution Environment](https://docs.ansible.com/automation-controller/latest/html/userguide/execution_environments.html).
+To build an Execution Environment and run this deployment inside a custom container, reproduce the following steps:
+
+1. Populate the `execution-environment.yml` file with the base image to use as a value for the `EE_BASE_IMAGE` variable in `build_arg_defaults`. For more information on how to write an `execution-environment.yml` file with more available options, refer to the following [article](https://www.redhat.com/sysadmin/ansible-execution-environment-unconnected#:~:text=Ansible%20execution%20environments%20(EE)%20were,that%20help%20execute%20Ansible%20playbooks.)
+
+2. If `ansible-builder` is not present on your environment, install it by using `python3 -m pip install ansible-builder`. Run the `ansible-builder build --tag my_ee` to build the Execution Environment. This command will create a directory `context/` with `_build` information about requirements for the image and a Containerfile
+
+3. To run this deployment inside the created Execution Environment, use the [`ansible-runner`](https://ansible-runner.readthedocs.io/en/stable/) command line. It can be installed via the `python3 -m pip install ansible-runner` command. `ansible-runner` supports `ansible-playbook` commands to run automation jobs, but adds more capabilities like [Execution Environment support](https://ansible-runner.readthedocs.io/en/stable/execution_environments/)
+
+4. Create an `env/` directory at the root of the repository, and create an `env/extravars` file. Populate it with your base hostname as follows:
+
+```
+---
+base_hostname: base_hostname
+```
+
+5. Run the deployment job inside the Execution Environment:
+
+```
+ansible-runner run -i inventory -p playbooks/install.yml --container-image=my_ee .
+```
+
 ## Future Efforts
 
 The following are planned next steps:

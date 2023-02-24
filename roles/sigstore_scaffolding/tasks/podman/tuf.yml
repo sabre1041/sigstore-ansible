@@ -23,8 +23,8 @@
     validate_certs: false
     return_content: true
   until: "rekor_public_key_result.status == 200"
-  retries: 5
-  delay: 10
+  retries: 10
+  delay: 20
   register: rekor_public_key_result
   delegate_to: localhost
 

@@ -38,6 +38,7 @@
     state: present
     enabled: true
     validate_certs: no
+    wait_increment_seconds: 120
   delegate_to: localhost
 
 - name: Create sigstore client 
