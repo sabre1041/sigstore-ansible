@@ -132,19 +132,26 @@ To build an Execution Environment and run this deployment inside a custom contai
 
 2. If `ansible-builder` is not present on your environment, install it by using `python3 -m pip install ansible-builder`. Run the `ansible-builder build --tag my_ee` to build the Execution Environment. This command will create a directory `context/` with `_build` information about requirements for the image and a Containerfile
 
-3. To run this deployment inside the created Execution Environment, use the [`ansible-runner`](https://ansible-runner.readthedocs.io/en/stable/) command line. It can be installed via the `python3 -m pip install ansible-runner` command. `ansible-runner` supports `ansible-playbook` commands to run automation jobs, but adds more capabilities like [Execution Environment support](https://ansible-runner.readthedocs.io/en/stable/execution_environments/)
+3. Ensure that you are logged in the target container image registry, then tag and push the created image to the registry:
 
-4. Create an `env/` directory at the root of the repository, and create an `env/extravars` file. Populate it with your base hostname as follows:
+```
+docker tag my-ee:latest quay.io/myusername/my_ee:latest
+docker push quay.io/myusername/my_ee:latest
+```
+
+4. To run this deployment inside the created Execution Environment, use the [`ansible-navigator`](https://ansible-runner.readthedocs.io/en/stable/) command line. It can be installed via the `python3 -m pip install ansible-navigator` command or refer to the [installation instructions](https://ansible-navigator.readthedocs.io/en/latest/installation/#installing-ansible-navigator-with-execution-environment-support). `ansible-navigator` supports `ansible-playbook` commands to run automation jobs, but adds more capabilities like Execution Environment support.
+
+5. Create an `env/` directory at the root of the repository, and create an `env/extravars` file. Populate it with your base hostname as follows:
 
 ```
 ---
 base_hostname: base_hostname
 ```
 
-5. Run the deployment job inside the Execution Environment:
+6. Run the deployment job inside the Execution Environment:
 
 ```
-ansible-runner run -i inventory -p playbooks/install.yml --container-image=my_ee .
+ansible-navigator run -i inventory --execution-environment-image=quay.io/myusername/my-ee:latest playbooks/install.yml
 ```
 
 ## Future Efforts

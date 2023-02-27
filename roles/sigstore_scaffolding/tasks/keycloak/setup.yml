@@ -38,7 +38,7 @@
     state: present
     enabled: true
     validate_certs: no
-    wait_increment_seconds: 120
+    wait_increment_seconds: "{{ keycloak_wait_increment_seconds }}"
   delegate_to: localhost
 
 - name: Create sigstore client 
