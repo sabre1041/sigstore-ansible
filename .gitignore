@@ -1,0 +1,10 @@
+venv/
+env/
+.venv/
+.env/
+# artifacts/ directory produced by ansible-runner
+artifacts/
+# context/ directory produced by ansible-builder
+context/
+*.log
+*+00:00.json
