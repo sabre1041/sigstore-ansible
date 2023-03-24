@@ -8,11 +8,13 @@
     msg: "'base_hostname' must be specified"
 
 - name: Create Certificates Directory
+  become: yes
   ansible.builtin.file:
     state: directory
     dest: "{{ certs_dir }}"
 
 - name: List files in certs directory
+  become: yes
   ansible.builtin.find:
     file_type: file
     paths: "{{ certs_dir }}"
@@ -129,6 +131,7 @@
 
 
 - name: Copy Certificates to Server
+  become: yes
   ansible.builtin.copy:
     src: "{{ local_certs_dir }}/"
     dest: "{{ certs_dir }}"
