@@ -44,7 +44,7 @@ spec:
       imagePullPolicy: IfNotPresent
       name: trillian-trillian-logsigner
       ports:
-        - containerPort: 8091
+        - containerPort: 8191
           protocol: TCP
       resources: {}
       terminationMessagePath: /dev/termination-log

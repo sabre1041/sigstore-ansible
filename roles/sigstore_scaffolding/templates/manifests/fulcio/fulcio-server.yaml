@@ -39,7 +39,7 @@ spec:
           protocol: TCP
         - containerPort: 5554
           protocol: TCP
-        - containerPort: 2112
+        - containerPort: 2113
           protocol: TCP
       resources: {}
       terminationMessagePath: /dev/termination-log
