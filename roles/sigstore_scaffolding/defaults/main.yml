@@ -74,6 +74,8 @@ remote_rekor_signer: "{{ certs_dir }}/{{ rekor_signer_filename }}"
 remote_rekor_public_key: "{{ certs_dir }}/{{ rekor_public_key_filename }}"
 
 
+rekor_public_key_retries: 5
+rekor_public_key_delay: 10
 fulcio_server_config: "{{ kube_configmap_dir }}/fulcio-config.yaml"
 fulcio_server_secret_config: "{{ kube_configmap_dir }}/fulcio-server-secret.yaml"
 ctlog_secret_config: "{{ kube_configmap_dir }}/ctlog-secret.yaml"
@@ -94,6 +96,7 @@ ct_logprefix: sigstoreansible
 
 scaffolding_utils_image: quay.io/ablock/sigstore-scaffolding-helper:latest
 
+keycloak_wait_increment_seconds: 60
 keycloak_postgresql_user: "keycloak"
 keycloak_postgresql_password: "keycloak"
 keycloak_postgresql_database: "keycloak"
