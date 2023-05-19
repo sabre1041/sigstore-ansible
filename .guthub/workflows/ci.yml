@@ -32,6 +32,7 @@ jobs:
           pwd
 
       - name: Run Ansible playbook
-        run: ansible-playbook -i inventory playbooks/install.yml
         env:
-          ANSIBLE_HOST_KEY_CHECKING: false
+          REMOTE_HOST: 3.135.129.115
+        run: ansible-playbook -i inventory playbooks/install.yml
+
