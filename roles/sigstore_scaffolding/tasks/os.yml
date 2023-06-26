@@ -4,6 +4,12 @@
   ansible.builtin.package:
     name: "{{ system_packages }}"
 
+- name: Enable firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
+
 - name: Install Cockpit
   ansible.builtin.include_role:
     name: cockpit
