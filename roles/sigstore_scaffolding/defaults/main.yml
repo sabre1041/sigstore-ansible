@@ -12,6 +12,7 @@ cockpit_enabled: true
 cockpit:
   enabled: true
   cockpit_packages:
+    - cockpit
     - cockpit-storaged
     - cockpit-podman
   cockpit_manage_firewall: yes
