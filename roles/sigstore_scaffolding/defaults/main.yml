@@ -109,7 +109,7 @@ keycloak_auth_endpoint: ""
 
 keycloak_sigstore_client: sigstore
 keycloak_sigstore_client_redirect_uris:
-  - "http://localhost/auth/callback"
+  - "*"
 
 keycloak_sigstore_users:
  - username: jdoe
